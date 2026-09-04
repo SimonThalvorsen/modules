@@ -483,7 +483,7 @@
       ]
     },
     "promise-type-ansible": {
-      "description": "Promise type to manage systemd services.",
+      "description": "Promise type to run ansible playbooks.",
       "subdirectory": "promise-types/ansible",
       "dependencies": ["library-for-promise-types-in-python"],
       "steps": [
