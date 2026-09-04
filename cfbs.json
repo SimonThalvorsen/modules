@@ -439,12 +439,56 @@
         }
       ]
     },
+    "run-ansible-playbooks": {
+      "description": "Run Ansible playbooks",
+      "subdirectory": "management/run-ansible-playbooks",
+      "dependencies": ["promise-type-ansible"],
+      "steps": [
+        "copy main.cf services/cfbs/modules/run-ansible-playbooks/main.cf",
+        "policy_files services/cfbs/modules/run-ansible-playbooks/main.cf",
+        "bundles run_ansible_playbooks:main",
+        "input ./input.json def.json"
+      ],
+      "input": [
+        {
+          "type": "list",
+          "variable": "playbooks",
+          "namespace": "run_ansible_playbooks",
+          "bundle": "main",
+          "label": "Playbooks",
+          "subtype": [
+            {
+              "key": "path",
+              "type": "string",
+              "label": "Path",
+              "question": "Playbooks to run"
+            },
+            {
+              "key": "condition",
+              "type": "string",
+              "label": "Condition",
+              "question": "Condition for when to run",
+              "default": "any"
+            },
+            {
+              "key": "ifelapsed",
+              "type": "string",
+              "label": "ifelapsed",
+              "question": "Number of minutes between playbook assessments",
+              "default": "5"
+            }
+          ],
+          "while": "Do you want to specify more playbooks to be run?"
+        }
+      ]
+    },
     "promise-type-ansible": {
       "description": "Promise type to manage systemd services.",
       "subdirectory": "promise-types/ansible",
       "dependencies": ["library-for-promise-types-in-python"],
       "steps": [
         "copy ansible_promise.py modules/promises/",
+        "copy ansible_promise.sh modules/promises/",
         "append enable.cf services/init.cf"
       ]
     },

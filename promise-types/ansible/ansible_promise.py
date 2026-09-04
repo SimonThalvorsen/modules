@@ -104,6 +104,11 @@ class AnsiblePromiseTypeModule(PromiseModule):
         self.add_attribute("private_key_file", str, validator=must_be_absolute)
         self.add_attribute("remote_user", str, default="root")
 
+        # Standard CFEngine promise attribute, forwarded to the promise module
+        # by the agent instead of being consumed by it. Declared so that it is
+        # accepted rather than rejected as an unknown attribute.
+        self.add_attribute("comment", str)
+
     def prepare_promiser_and_attributes(self, promiser, attributes):
         safe_promiser = promiser.replace(",", "_")
         return (safe_promiser, attributes)

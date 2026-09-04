@@ -1,8 +1,8 @@
 promise agent ansible
 # @brief Define ansible promise type
 {
-  path => "$(sys.workdir)/modules/promises/ansible_promise.py";
-  interpreter => "/usr/bin/python3";
+  path => "$(sys.workdir)/modules/promises/ansible_promise.sh";
+  interpreter => "/bin/sh";
 }
 
 bundle agent main

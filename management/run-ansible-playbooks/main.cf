@@ -1,0 +1,61 @@
+body file control
+{
+  namespace => "run_ansible_playbooks";
+}
+
+body action ifelapsed(minutes)
+{
+  ifelapsed => "$(minutes)";
+}
+
+bundle agent playbook(playbook, inventory)
+{
+  ansible:
+    "$(playbook)" inventory => "$(inventory)";
+}
+
+bundle agent main
+{
+  classes:
+    "enable" if => isvariable("playbooks");
+
+  vars:
+    "i" slist => getindices("playbooks");
+    "inventory" string => "$(sys.statedir)/run-ansible-playbooks/inventory.ini";
+
+  files:
+    enable::
+      "$(with)/."
+        create => "true",
+        with => dirname("$(inventory)");
+
+      "$(inventory)"
+        content => "[local]$(const.n)localhost ansible_connection=local",
+        comment => concat(
+          "Prevents ansible from complaining about a missing inventory file ",
+          "and causes the playbook to be run on the local host."
+        );
+
+  methods:
+    enable::
+      "playbooks[$(i)]"
+        usebundle => playbook("$(playbooks[$(i)][path])", "$(inventory)"),
+        if => "$(playbooks[$(i)][condition])",
+        action => ifelapsed("$(playbooks[$(i)][ifelapsed])"),
+        comment => concat(
+          "Run playbook '$(playbooks[$(i)][path])' ",
+          "if condition '$(playbooks[$(i)][condition])' ",
+          "every $(playbooks[$(i)][ifelapsed]) minutes"
+        );
+}
+
+body file control
+{
+  namespace => "default";
+}
+
+bundle agent __main__
+{
+  methods:
+    "run_ansible_playbooks:main";
+}

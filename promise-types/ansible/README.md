@@ -17,6 +17,10 @@ bundle agent main
 
 * Ansible >= 2.8.0
 
+The promise type runs under the Python interpreter of the pipx virtualenv that
+the `install-ansible` module creates, falling back to `/usr/bin/python3` when
+Ansible was installed some other way.
+
 ## Attributes
 
 | Name               | Type      | Description                                                  | Mandatory | Default         |
