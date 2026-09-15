@@ -9,8 +9,17 @@ sudo cf-agent -Kd -Ddata:install_ansible --bundle install_ansible
 ansible --version
 
 markerdir=$(mktemp -d)
-trap 'sudo rm -rf "$markerdir"' EXIT
 marker="$markerdir/marker"
+
+# The tests share one project, so put it back the way we found it. Otherwise the
+# playbook below keeps running in later tests and fails once "$markerdir" is gone.
+cleanup() {
+  sudo rm -rf "$markerdir"
+  cfbs --non-interactive remove run-ansible-playbooks || true
+  cfbs --non-interactive remove ./playbooks/ || true
+  rm -rf playbooks run-ansible-playbooks
+}
+trap cleanup EXIT
 
 # The playbook touches a marker file so we can tell that it actually ran
 mkdir -p playbooks

@@ -482,6 +482,50 @@
         }
       ]
     },
+    "ansible-playbook-dispatcher": {
+      "description": "Ansible playbook dispatcher for running playbooks on schedule",
+      "subdirectory": "management/ansible-playbook-dispatcher",
+      "dependencies": ["promise-type-ansible"],
+      "steps": [
+        "copy main.cf services/cfbs/modules/ansible-playbook-dispatcher/main.cf",
+        "policy_files services/cfbs/modules/ansible-playbook-dispatcher/main.cf",
+        "bundles ansible_playbook_dispatcher:main",
+        "input ./input.json def.json"
+      ],
+      "input": [
+        {
+          "type": "list",
+          "variable": "playbooks",
+          "namespace": "ansible_playbook_dispatcher",
+          "bundle": "main",
+          "label": "Playbooks",
+          "subtype": [
+            {
+              "key": "path",
+              "type": "file",
+              "label": "Playbook",
+              "question": "Which playbook should be run?",
+              "filetype": [".yaml", ".yml"]
+            },
+            {
+              "key": "condition",
+              "type": "string",
+              "label": "Condition",
+              "question": "Condition for when to run",
+              "default": "any"
+            },
+            {
+              "key": "ifelapsed",
+              "type": "string",
+              "label": "ifelapsed",
+              "question": "Number of minutes between playbook assessments",
+              "default": "5"
+            }
+          ],
+          "while": "Do you want to specify more playbooks to be run?"
+        }
+      ]
+    },
     "promise-type-ansible": {
       "description": "Promise type to run ansible playbooks.",
       "subdirectory": "promise-types/ansible",

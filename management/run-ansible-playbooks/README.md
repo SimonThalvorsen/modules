@@ -30,6 +30,9 @@ cfbs add install-ansible
 - `ifelapsed` - Minimum number of minutes between each run.
   Defaults to 5 minutes.
 
+**Note:** If you would rather point at each playbook file directly and let cfbs ship it for you,
+see the [ansible-playbook-dispatcher](https://build.cfengine.com/modules/ansible-playbook-dispatcher/) build module.
+
 ## Contribute
 
 Feel free to open pull requests to expand this documentation, add features or fix problems.
