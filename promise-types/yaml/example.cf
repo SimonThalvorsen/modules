@@ -1,0 +1,85 @@
+promise agent yaml
+{
+  path => "$(sys.workdir)/modules/promises/yaml_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent main
+{
+  vars:
+    "yaml_path" string => "/tmp/promise-type-yaml-example.yaml";
+
+    # A config file owned by someone else, we only manage a few settings in it
+    "content"
+      string => "# Owned by the app team, CFEngine manages parts of it
+server:
+  host: '0.0.0.0'
+  port: 8080
+  debug: true # never enable in production
+  allowed_networks:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+backends:
+  - name: api
+    url: http://api.internal:9000
+  - name: legacy
+    url: http://legacy.internal:8000
+";
+
+  files:
+    # Seed the example file once. The yaml: promise type can create a
+    # missing file too, but here we want to show edits to existing content.
+    "$(yaml_path)"
+      create => "true",
+      content => "$(content)",
+      if => not(fileexists("$(yaml_path)"));
+
+  yaml:
+    # set: the key has this value. The single quotes around the old value
+    # are kept, as are all comments in the file.
+    "$(yaml_path)"
+      filter => ".server.host",
+      operation => "set",
+      value => "127.0.0.1";
+
+    # true, false, null and numbers are written as-is, so this is a boolean
+    "$(yaml_path)"
+      filter => ".server.debug",
+      operation => "set",
+      value => "false";
+
+    # set also creates missing keys, including missing parents
+    "$(yaml_path)"
+      filter => ".server.tls.cert",
+      operation => "set",
+      value => "/etc/ssl/app.pem";
+
+    # present / absent with a value: the list does / doesn't contain it.
+    # Items are matched by content, so this is safe to run over and over.
+    "$(yaml_path)"
+      filter => ".server.allowed_networks",
+      operation => "absent",
+      value => "172.16.0.0/12";
+
+    "$(yaml_path)"
+      filter => ".server.allowed_networks",
+      operation => "present",
+      value => "192.168.0.0/16";
+
+    # select() finds items in a list of mappings by one of their fields
+    "$(yaml_path)"
+      filter => '.backends[] | select(.name == "api") | .url',
+      operation => "set",
+      value => "http://api.internal:9100";
+
+    # absent without a value: the key or item doesn't exist
+    "$(yaml_path)"
+      filter => '.backends[] | select(.name == "legacy")',
+      operation => "absent";
+
+  reports:
+    "Resulting YAML ($(yaml_path)):
+$(with)"
+      with => readfile("$(yaml_path)", 0),
+      if => fileexists("$(yaml_path)");
+}
