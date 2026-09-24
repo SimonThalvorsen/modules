@@ -1,0 +1,44 @@
+promise agent yaml
+{
+  path => "$(sys.workdir)/modules/promises/yaml_promise_type.py";
+  interpreter => "/usr/bin/python3";
+}
+
+bundle agent main
+{
+  vars:
+    "yaml_path" string => "/tmp/promise-type-yaml-test.yaml";
+
+    "content"
+      string => "hosts:
+# comments are kept
+  - ipaddr: 192.168.56.10
+# change this one to (10.0.0.1) later
+  - ipaddr: 127.0.0.1
+";
+
+  files:
+    # Creating YAML content from scratch is a job for the files: promise,
+    # not the yaml: promise type - it only intended for light edits.
+    "$(yaml_path)"
+      create => "true",
+      content => "$(content)",
+      if => not(fileexists("$(yaml_path)"));
+
+  yaml:
+    "$(yaml_path)"
+      filter => '.hosts[] | select(.ipaddr == "192.168.56.10") | .hostname',
+      operation => "set",
+      value => "web1";
+
+    "$(yaml_path)"
+      filter => '.hosts[] | select(.ipaddr == "127.0.0.1") | .ipaddr',
+      operation => "set",
+      value => "10.0.0.1";
+
+  reports:
+    "Resulting YAML ($(yaml_path)):
+$(with)"
+      with => readfile("$(yaml_path)", 0),
+      if => fileexists("$(yaml_path)");
+}
