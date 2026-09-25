@@ -257,11 +257,12 @@ def _step(match, step, rest):
             raise FilterError("Cannot iterate over a non-sequence value")
         return [Match(node, i, item.value, True) for i, item in enumerate(node.items)]
     if isinstance(step, SelectStep):
-        return [match] if _selected(node, step) else []
+        return [match] if selects(node, step) else []
     raise FilterError("Unknown filter step")
 
 
-def _selected(node, step):
+def selects(node, step):
+    """Whether select() step keeps node."""
     for sub in step.path:
         if isinstance(sub, KeyStep) and isinstance(node, MappingNode):
             entry = node.get_entry(sub.name)

@@ -73,6 +73,8 @@ backends:
   - name: api
     url: \"http://api.internal:9100\"
     timeout: 10 # seconds
+  - name: cache
+    url: http://cache.internal:6379
 labels:
   app.example.com/name: shop
   \"app.example.com/owner\": \"platform\"
@@ -192,6 +194,18 @@ bundle agent apply(pass)
       filter => '.backends[] | select(.name == "api") | .timeout',
       operation => "set",
       value => "10",
+      classes => outcome("$(pass)");
+
+    # Adds '- name: cache' since no item matches, then sets a field on it
+    "$(g.file)"
+      filter => '.backends[] | select(.name == "cache")',
+      operation => "present",
+      classes => outcome("$(pass)");
+
+    "$(g.file)"
+      filter => '.backends[] | select(.name == "cache") | .url',
+      operation => "set",
+      value => "http://cache.internal:6379",
       classes => outcome("$(pass)");
 
     # Removes the whole item, found by name rather than position

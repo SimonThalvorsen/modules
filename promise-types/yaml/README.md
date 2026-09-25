@@ -16,7 +16,7 @@ New files get mode 0600 and new directories 0700, the same as `files:` promises 
 | ----------- | -------- | ---------------------------- | -------------------------------------------------- |
 | `filter`    | `string` | yes                          | jq-like path to the node(s) to operate on          |
 | `operation` | `string` | yes                          | One of `set`, `present` or `absent`                |
-| `value`     | `string` | for `set` and `present`      | A scalar value                                     |
+| `value`     | `string` | depends on `operation`       | A scalar value, see [Operations](#operations)      |
 
 ### Operations
 
@@ -25,6 +25,19 @@ All operations describe a desired state, so running a promise again once it is k
 - `set`: The key or item has `value`. Creates the key if it's missing, along with any missing parent keys, or replaces the current value, including nested content.
   The quoting style of an existing value (plain, single or double quoted) is kept.
 - `present`: The sequence at `filter` contains `value`. Appends it if it's missing, creating the sequence (and parent keys) if needed.
+  Without `value`, on a filter ending in `[] | select(.key == value)`, a sequence of mappings contains an item matching the select.
+  If none does, `- key: value` is appended, and other fields can then be set through the same `select()`:
+
+  ```cfengine3
+  "/etc/app/users.yaml"
+    filter => '.users[] | select(.name == "carol")',
+    operation => "present";
+
+  "/etc/app/users.yaml"
+    filter => '.users[] | select(.name == "carol") | .shell',
+    operation => "set",
+    value => "/bin/zsh";
+  ```
 - `absent`: Without `value`, the key(s) or item(s) at `filter` are removed, including anything nested under them.
   With `value`, every item equal to `value` is removed from the sequence at `filter`; the rest of the sequence is kept.
   Parents are never removed, even if they end up empty.

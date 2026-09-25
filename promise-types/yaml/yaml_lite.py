@@ -215,7 +215,7 @@ def _decode_scalar_text(text):
     return text.strip()
 
 
-def _decode_plain_scalar(raw):
+def decode_plain_scalar(raw):
     if raw == "" or raw == "~" or raw.lower() == "null":
         return None
     low = raw.lower()
@@ -427,7 +427,7 @@ class _Parser(object):
             cut = _find_comment_start(text)
             raw = text[:cut] if cut is not None else text
             raw = raw.rstrip()
-            value = _decode_plain_scalar(raw)
+            value = decode_plain_scalar(raw)
             style = "plain"
             col_end = col + len(raw)
         return ScalarNode(

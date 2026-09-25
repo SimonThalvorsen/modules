@@ -31,9 +31,19 @@ class YamlPromiseTypeModule(PromiseModule):
                 "Attribute 'operation' must be one of: %s" % ", ".join(_OPERATIONS)
             )
 
-        if operation in ("set", "present") and "value" not in attributes:
+        if operation == "set" and "value" not in attributes:
+            raise ValidationError("Attribute 'value' is required for operation 'set'")
+
+        # Without a value, 'present' adds an item to a sequence of mappings,
+        # built from the select() condition
+        if (
+            operation == "present"
+            and "value" not in attributes
+            and not _is_item_select(steps)
+        ):
             raise ValidationError(
-                "Attribute 'value' is required for operation '%s'" % operation
+                "Operation 'present' requires 'value', or a filter ending in "
+                "'[] | select(.key == value)'"
             )
 
         # Removing by position is not convergent: the next run would remove
@@ -78,8 +88,14 @@ class YamlPromiseTypeModule(PromiseModule):
                 # Empty document (or only comments): new keys go at the end
                 root = yaml_lite.MappingNode(start_line=len(lines) - 1, indent=0)
             try:
-                matches = jq_filter.evaluate(steps, root)
-                if not _repair_one(lines, matches, operation, value):
+                if operation == "present" and value is None:
+                    # The sequence(s) that '[] | select()' looks in
+                    sequences = jq_filter.evaluate(steps[:-2], root)
+                    repaired = _present_selected(lines, sequences, steps[-1])
+                else:
+                    matches = jq_filter.evaluate(steps, root)
+                    repaired = _repair_one(lines, matches, operation, value)
+                if not repaired:
                     break
             except (jq_filter.FilterError, _OperationError) as e:
                 self.log_error(
@@ -192,6 +208,53 @@ def _present(lines, match, value):
             return False
     yaml_lite.append_sequence_item(lines, seq, yaml_lite.format_scalar(value))
     return True
+
+
+def _is_item_select(steps):
+    return (
+        len(steps) >= 2
+        and isinstance(steps[-2], jq_filter.IterStep)
+        and isinstance(steps[-1], jq_filter.SelectStep)
+        and len(steps[-1].path) == 1
+        and isinstance(steps[-1].path[0], jq_filter.KeyStep)
+    )
+
+
+def _literal_text(literal):
+    """YAML text for a select() literal that reads back as the same value."""
+    if literal is None:
+        return "null"
+    if isinstance(literal, bool):
+        return "true" if literal else "false"
+    if isinstance(literal, int):
+        return str(literal)
+    text = yaml_lite.format_scalar(literal)
+    if text == literal and yaml_lite.decode_plain_scalar(text) != literal:
+        # e.g. the string "true" or "8080", which would be read as non-strings
+        return yaml_lite.format_scalar(literal, "double")
+    return text
+
+
+def _present_selected(lines, matches, select):
+    """Append a '- key: value' item to every sequence where select() matches
+    no item. Returns False if all of them already have one."""
+    key = select.path[0].name
+    for match in matches:
+        if match.missing_parent or not match.exists:
+            if isinstance(match.container, yaml_lite.SequenceNode):
+                raise _OperationError("'present' requires a sequence")
+            # Create the missing 'key:', the next repair adds the item
+            yaml_lite.insert_mapping_key(lines, match.container, match.key, "")
+            return True
+        seq = _sequence_or_slot(match)
+        if isinstance(seq, yaml_lite.SequenceNode) and any(
+            jq_filter.selects(item.value, select) for item in seq.items
+        ):
+            continue
+        item = yaml_lite.format_scalar(key) + ": " + _literal_text(select.literal)
+        yaml_lite.append_sequence_item(lines, seq, item)
+        return True
+    return False
 
 
 def _absent_item(lines, match, value):
